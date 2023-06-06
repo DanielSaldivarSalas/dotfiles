@@ -15,10 +15,18 @@ On Linux and macOS there are certain dotfiles you will commonly see:
 
   Many window programs will store the dot-configuration files in ~C:\Users\username~
 
+* Requirements
+- stow 
+
 
 
 * Create symbolic links to the orignal config file locations
 
 #+begin_src shell
-ln -sf ~/.dotfiles/.emacs.d ~/.emacs.d
+stow .
+#+end_src
+
+* Delete symbolic links, keeps the original files
+#+begin_src shell
+stow -D .
 #+end_src
