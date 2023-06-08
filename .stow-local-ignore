@@ -1,8 +1,6 @@
 \.git
 .gitignore
-
+README.org
+nvim.org
 .+~          # emacs backup files
 \#.*\#       # emacs autosave files
-
-
-\.org$

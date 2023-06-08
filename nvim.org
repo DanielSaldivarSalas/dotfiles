@@ -3,12 +3,18 @@
 * Lazyvim start
 https://www.lazyvim.org/installation
 
-;#+begin_src lua :tangle ~/.dotfiles/nvim/lua/user/config/options.lua :mkdirp yes
- ;      local o = vim.opt
-;
-   ;    o.number = true
-  ;      o.relativenumber = true
- ;       o.autowrite = true
-;#+end_src
-
 * keybindings
+
+* transparent
+#+begin_src lua :tangle ~/.dotfiles/.config/nvim/lua/plugins/transparent.lua :mkdirp yes
+local M = {}
+
+if vim.fn.has("unix") == 1 then -- Checks if the OS is Unix (or Unix-like) and not Windows
+  table.insert(M, "xiyaowong/transparent.nvim")
+end
+
+return { M }
+
+
+#+end_src
+
