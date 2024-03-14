@@ -1,5 +1,6 @@
+
 -- disable trouble
-    return {
+return {
   {
     "folke/noice.nvim",
     opts = {

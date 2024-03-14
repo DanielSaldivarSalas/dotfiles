@@ -1,0 +1,366 @@
+* Requirements
+** neovim 0.9+
+
+* Installation
+https://www.lazyvim.org/installation
+
+* Makefile
+
+#tangle Makefile
+@code make
+define move_if_identical
+@if [ ! -f $(1) ]; then \
+		echo "$(1) not found"; \
+elif [ ! -f $(2) ]; then \
+		mv $(1) $(2); \
+		echo "Moved $(1) to $(2)"; \
+elif cmp -s $(1) $(2); then \
+		rm $(1); \
+		echo "Removed $(1) because they are identical."; \
+else \
+		mv $(1) $(2); \
+		echo "Overriding $(2) with $(1)."; \
+fi
+endef
+
+
+# this is a temporary workaround until V3 parser of Neorg comes along in 8.0.0
+move:
+		$(call move_if_identical,treesitter.lua,.config/nvim/lua/plugins/treesitter.lua)
+		$(call move_if_identical,transparent.lua,.config/nvim/lua/plugins/transparent.lua)
+		$(call move_if_identical,neorg.lua,.config/nvim/lua/plugins/neorg.lua)
+		$(call move_if_identical,toggleterm.lua,.config/nvim/lua/plugins/toggleterm.lua)
+		$(call move_if_identical,mason.lua,.config/nvim/lua/plugins/mason.lua)
+		$(call move_if_identical,nvimlspconfig.lua,.config/nvim/lua/plugins/nvimlspconfig.lua)
+		$(call move_if_identical,vimfugitive.lua,.config/nvim/lua/plugins/vimfugitive.lua)
+		$(call move_if_identical,lazygit.lua,.config/nvim/lua/plugins/lazygit.lua)
+		$(call move_if_identical,telescopemakefile.lua,.config/nvim/lua/plugins/telescopemakefile.lua)
+		$(call move_if_identical,disabled.lua,.config/nvim/lua/plugins/disabled.lua)
+
+@end 
+
+
+* Plugins
+** transparent
+   
+#tangle transparent.lua
+@code lua 
+
+local M = {}  
+
+if vim.fn.has("unix") == 1 then -- Checks if the OS is Unix (or Unix-like) and not Windows
+  table.insert(M, "xiyaowong/transparent.nvim")
+end
+return { M }
+
+@end  
+** Treesitter
+  Use ^Neorg sync-parsers^ to install *nvim-treesitter-norg* instead of Treesitter
+
+#tangle treesitter.lua
+@code lua 
+return {
+  "nvim-treesitter/nvim-treesitter",
+  version = "v0.9.1",
+  build = ":TSUpdate",
+  event = { "BufReadPost", "BufNewFile" },
+  dependencies = {
+    {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+      init = function()
+        -- PERF: no need to load the plugin, if we only need its queries for mini.ai
+        local plugin = require("lazy.core.config").spec.plugins["nvim-treesitter"]
+        local opts = require("lazy.core.plugin").values(plugin, "opts", false)
+        local enabled = false
+        if opts.textobjects then
+          for _, mod in ipairs({ "move", "select", "swap", "lsp_interop" }) do
+            if opts.textobjects[mod] and opts.textobjects[mod].enable then
+              enabled = true
+              break
+            end
+          end
+        end
+        if not enabled then
+          require("lazy.core.loader").disable_rtp_plugin("nvim-treesitter-textobjects")
+        end
+      end,
+    },
+  },
+  keys = {
+    { "<c-space>", desc = "Increment selection" },
+    { "<bs>", desc = "Decrement selection", mode = "x" },
+  },
+  ---@type TSConfig
+  opts = {
+    highlight = {
+      enable = true,
+      additional_vim_regex_highlighting = { "org" },
+    },
+    indent = { enable = true },
+    ensure_installed = {
+      "bash",
+      "beancount",
+      "c",
+      "html",
+      "javascript",
+      "json",
+      "lua",
+      "luadoc",
+      "luap",
+      "markdown",
+      "markdown_inline",
+      "python",
+      "query",
+      "terraform",
+      "regex",
+      "tsx",
+      "org",
+      "typescript",
+      "vim",
+      "vimdoc",
+      "yaml",
+    },
+    incremental_selection = {
+      enable = true,
+      keymaps = {
+        init_selection = "<C-space>",
+        node_incremental = "<C-space>",
+        scope_incremental = false,
+        node_decremental = "<bs>",
+      },
+    },
+  },
+  ---@param opts TSConfig
+  config = function(_, opts)
+    if type(opts.ensure_installed) == "table" then
+      ---@type table<string, boolean>
+      local added = {}
+      opts.ensure_installed = vim.tbl_filter(function(lang)
+        if added[lang] then
+          return false
+        end
+        added[lang] = true
+        return true
+      end, opts.ensure_installed)
+    end
+    require("nvim-treesitter.configs").setup(opts)
+  end,
+}
+
+   @end 
+
+** neorg
+
+#tangle neorg.lua
+@code lua
+
+return {
+  {
+    "nvim-neorg/neorg",
+    dependencies = {
+      { "nvim-lua/plenary.nvim" },
+      { "laher/neorg-exec" },
+    },
+    --  keys = {
+    -- { "<leader>ne", ":Neorg export to-file ", desc = "Export file" },
+      --    { "<leader>nt", "<cmd>Neorg tangle current-file<cr>", desc = "Tangle file" },
+    --  { "<leader>np", "<cmd>Neorg presenter<cr>", desc = "Presenter" },
+    -- { "<leader>nmi", "<cmd>Neorg inject-metadata<cr>", desc = "Inject" },
+    --  { "<leader>nmu", "<cmd>Neorg update-metadata<cr>", desc = "Update" },
+    -- { "<leader>nol", "<cmd>Neorg toc left<cr>", desc = "Open ToC (left)" },
+    --{ "<leader>nor", "<cmd>Neorg toc right<cr>", desc = "Open ToC (right)" },
+    -- { "<leader>noq", "<cmd>Neorg toc qflist<cr>", desc = "Open ToC (quickfix list)" },
+    --},
+    build = ":Neorg sync-parsers",
+    config = function()
+      require("neorg").setup({
+        load = {
+          ["core.defaults"] = {}, -- Loads default behaviour
+          ["core.ui"] = {}, -- Loads default behaviour
+          ["core.concealer"] = {
+
+            config = {
+              icon_preset = "varied",
+              icons = {
+                todo = {
+
+                  done = { icon = "✔" }, -- no extra wrapping bryyackets here
+                },
+              },
+            },
+          }, -- Adds pretty icons to your documents
+          ["core.dirman"] = { -- Manages Neorg workspaces
+            config = {
+              workspaces = {
+                notes = "~/notes",
+                crm = "~/norg/crm",
+              },
+            },
+          },
+          ["core.looking-glass"] = {},
+          ["external.exec"] = {},
+          ["core.keybinds"] = {
+            config = {
+              default_keybinds = true,
+              neorg_leader = " ",
+              hook = function(keybinds)
+                keybinds.map("norg", "n", "nt", "<cmd>Neorg tangle current-file<CR>")
+              end
+            },
+            --  config = {
+            --   neorg_leader = ",",
+          },
+        },
+      })
+    end,
+  },
+}
+   @end
+
+
+** telescope 
+
+#tangle toggleterm.lua
+@code lua 
+return {
+    {'akinsho/toggleterm.nvim', version = "*", opts = {
+      direction = 'float'
+    },
+      keys = {
+        { "<leader>ct", "<cmd>ToggleTerm size=40 dir=. direction=float<cr>"} --, desc = "Open a horizontal terminal at the Desktop directory" }
+      },
+    }
+}
+@end
+** vim-fugitive 
+     
+#tangle vimfugitive.lua
+@code lua 
+return {
+  "tpope/vim-fugitive",
+}
+@end 
+
+
+
+
+** lsp
+*** Mason
+
+#tangle mason.lua
+@code lua
+return {
+  "williamboman/mason.nvim",
+  cmd = "Mason",
+  keys = { { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" } },
+  opts = {
+    ensure_installed = {
+      "stylua",
+      "shfmt",
+      "emmet-ls",
+      "cmake-language-server",
+      -- "flake8",
+    },
+  },
+  ---@param opts MasonSettings | {ensure_installed: string[]}
+  config = function(_, opts)
+    require("mason").setup(opts)
+    local mr = require("mason-registry")
+    local function ensure_installed()
+      for _, tool in ipairs(opts.ensure_installed) do
+        local p = mr.get_package(tool)
+        if not p:is_installed() then
+          p:install()
+        end
+      end
+    end
+    if mr.refresh then
+      mr.refresh(ensure_installed)
+    else
+      ensure_installed()
+    end
+    end,
+}
+@end
+
+*** nvim-lspconfig
+    Need this for emmet-ls
+
+
+#tangle nvimlspconfig.lua
+@code lua 
+return {
+  {
+    "neovim/nvim-lspconfig",
+    ---@class PluginLspOpts
+    opts = {
+      ---@type lspconfig.options
+      servers = {
+        emmet_ls = {
+          filetypes = { 'html', 'typescriptreact', 'javascriptreact', 'css', 'sass', 'scss', 'less', 'javascript', 'typescript', 'markdown' },
+          init_options = {
+            html = {
+              options = {
+                -- For possible options, see: https://github.com/emmetio/emmet/blob/master/src/config.ts#L79-L26
+                ["bem.enabled"] = true,
+              },
+            },
+          }
+        },
+      },
+    },
+  },
+}
+@end
+
+
+
+
+** Lazygit
+   
+#tangle lazygit.lua
+@code lua
+return {
+  {
+    "kdheepak/lazygit.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+    },
+  }
+}
+@end
+
+
+
+
+
+** telescope-makefile
+
+#tangle telescopemakefile.lua
+@code lua
+
+return {
+  "sopa0/telescope-makefile",
+}
+@end
+
+
+
+* Disabled plugins 
+
+#tangle disabled.lua
+@code lua 
+
+-- disable trouble
+return {
+  {
+    "folke/noice.nvim",
+    opts = {
+      notify = {
+        enabled = false,
+      },
+    },
+  },
+  { "rcarriga/nvim-notify", enabled = false },
+}
+@end

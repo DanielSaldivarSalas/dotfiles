@@ -6,8 +6,8 @@ return {
     ensure_installed = {
       "stylua",
       "shfmt",
-    "emmet-ls",
-    "cmake-language-server",
+      "emmet-ls",
+      "cmake-language-server",
       -- "flake8",
     },
   },
@@ -28,5 +28,5 @@ return {
     else
       ensure_installed()
     end
-  end,
+    end,
 }
