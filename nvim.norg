@@ -162,7 +162,14 @@ return {
   },
   {
     "nvim-neorg/neorg",
-    dependencies = { { "luarocks.nvim" }, { "laher/neorg-exec" } },
+    dependencies = {
+      { "nvim-lua/plenary.nvim" },
+      { "luarocks.nvim" }, 
+      { "laher/neorg-exec" },
+      { 'nvim-neorg/neorg-telescope' },
+      { '3rd/image.nvim' }, -- here I have the pasted default config from image.nvim's readme, but it won't  fit into a discord message
+        end,
+    },
     -- put any other flags you wanted to pass to lazy here!
     config = function()
       require("neorg").setup({
@@ -191,6 +198,8 @@ return {
             },
           },
           ["core.looking-glass"] = {},
+          ['core.integrations.telescope'] = {},
+          ['core.integrations.image'] = {},
           ["external.exec"] = {},
           ["core.keybinds"] = {
             config = {
