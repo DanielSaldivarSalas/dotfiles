@@ -16,6 +16,7 @@ endef
 
 # this is a temporary workaround until V3 parser of Neorg comes along in 8.0.0
 move:
+		$(call move_if_identical,molten.lua,.config/nvim/lua/plugins/molten.lua)
 		$(call move_if_identical,treesitter.lua,.config/nvim/lua/plugins/treesitter.lua)
 		$(call move_if_identical,transparent.lua,.config/nvim/lua/plugins/transparent.lua)
 		$(call move_if_identical,neorg.lua,.config/nvim/lua/plugins/neorg.lua)
@@ -26,3 +27,5 @@ move:
 		$(call move_if_identical,lazygit.lua,.config/nvim/lua/plugins/lazygit.lua)
 		$(call move_if_identical,telescopemakefile.lua,.config/nvim/lua/plugins/telescopemakefile.lua)
 		$(call move_if_identical,disabled.lua,.config/nvim/lua/plugins/disabled.lua)
+		$(call move_if_identical,clipboardimage.lua,.config/nvim/lua/plugins/clipboardimage.lua)
+		$(call move_if_identical,tmux.conf,.config/tmux/tmux.conf)

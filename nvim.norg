@@ -26,6 +26,7 @@ endef
 
 # this is a temporary workaround until V3 parser of Neorg comes along in 8.0.0
 move:
+		$(call move_if_identical,molten.lua,.config/nvim/lua/plugins/molten.lua)
 		$(call move_if_identical,treesitter.lua,.config/nvim/lua/plugins/treesitter.lua)
 		$(call move_if_identical,transparent.lua,.config/nvim/lua/plugins/transparent.lua)
 		$(call move_if_identical,neorg.lua,.config/nvim/lua/plugins/neorg.lua)
@@ -36,6 +37,8 @@ move:
 		$(call move_if_identical,lazygit.lua,.config/nvim/lua/plugins/lazygit.lua)
 		$(call move_if_identical,telescopemakefile.lua,.config/nvim/lua/plugins/telescopemakefile.lua)
 		$(call move_if_identical,disabled.lua,.config/nvim/lua/plugins/disabled.lua)
+		$(call move_if_identical,clipboardimage.lua,.config/nvim/lua/plugins/clipboardimage.lua)
+		$(call move_if_identical,tmux.conf,.config/tmux/tmux.conf)
 
 @end 
 
@@ -149,7 +152,7 @@ return {
 
 @end 
 
-** neorg
+** nzaeorg
 
 #tangle neorg.lua
 @code lua
@@ -159,6 +162,7 @@ return {
     "vhyrro/luarocks.nvim",
     priority = 1000, -- We'd like this plugin to load first out of the rest
     config = true, -- This automatically runs `require("luarocks-nvim").setup()`
+    lazy = false,
   },
   {
     "nvim-neorg/neorg",
@@ -166,9 +170,40 @@ return {
       { "nvim-lua/plenary.nvim" },
       { "luarocks.nvim" }, 
       { "laher/neorg-exec" },
-      { 'nvim-neorg/neorg-telescope' },
-      { '3rd/image.nvim' }, -- here I have the pasted default config from image.nvim's readme, but it won't  fit into a discord message
-        end,
+      -- { 'nvim-neorg/neorg-telescope' },
+
+      { '3rd/image.nvim' ,
+        config = function()
+          require("image").setup({
+            backend = "kitty",
+            integrations = {
+              markdown = {
+                enabled = true,
+                clear_in_insert_mode = false,
+                download_remote_images = true,
+                only_render_image_at_cursor = false,
+                filetypes = { "markdown", "vimwiki" }, -- markdown extensions (ie. quarto) can go here
+              },
+              neorg = {
+                enabled = true,
+                clear_in_insert_mode = false,
+                download_remote_images = true,
+                only_render_image_at_cursor = false,
+                filetypes = { "norg" },
+              },
+            },
+            max_width = nil,
+            max_height = nil,
+            max_width_window_percentage = nil,
+            max_height_window_percentage = 50,
+            window_overlap_clear_enabled = false, -- toggles images when windows are overlapped
+            -- window_overlap_clear_ft_ignore = { "cmp_menu", "cmp_docs", "" },
+            editor_only_render_when_focused = false, -- auto show/hide images when the editor gains/looses focus
+            tmux_show_only_in_active_window = false, -- auto show/hide images in the correct Tmux window (needs visual-activity off)
+            hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp" }, -- render image files as images when opened
+          }) 
+        end
+      }, -- here I have the pasted default config from image.nvim's readme, but it won't  fit into a discord message
     },
     -- put any other flags you wanted to pass to lazy here!
     config = function()
@@ -193,12 +228,21 @@ return {
             config = {
               workspaces = {
                 notes = "~/notes",
-                crm = "~/norg/crm",
+                prm = "~/norg/prm",
+                journal = "~/norg/journal",
+                meetings = "~/norg/meetings",
+                books = "~/norg/books",
               },
             },
           },
           ["core.looking-glass"] = {},
-          ['core.integrations.telescope'] = {},
+          ["core.journal"] = {
+            config = {
+              strategy = "flat",
+              journal_folder = "~/norg/journal",
+            }
+          },                  -- Enables support for the journal module
+        --  ['core.integrations.telescope'] = {},
           ['core.integrations.image'] = {},
           ["external.exec"] = {},
           ["core.keybinds"] = {
@@ -335,7 +379,24 @@ return {
 @end
 
 
+** molten 
+   This will allow us to run juyter notebooks in neovim
+   
+#tangle molten.lua
+@code lua
 
+vim.g.python3_host_prog=vim.fn.expand("~/.virtualenvs/neovim/bin/python3")
+return {
+  "benlubas/molten-nvim",
+    version = "^1.0.0", -- use version <2.0.0 to avoid breaking changes
+    build = ":UpdateRemotePlugins",
+    init = function()
+        -- this is an example, not a default. Please see the readme for more configuration options
+        vim.g.molten_output_win_max_height = 12
+  end,
+}
+
+@end
 
 
 ** telescope-makefile
@@ -348,7 +409,57 @@ return {
 }
 @end
 
+** clipboard-image
 
+#tangle clipboardimage.lua
+@code lua
+
+return {
+  "Traap/clipboard-image.nvim",
+  --"ekickx/clipboard-image.nvim",
+  event = { "BufReadPost", "BufNewFile" },
+  enabled = true,
+
+  keys = {
+    {"<leader>pi", "<cmd>PasteImg<cr>", "Save and Past Image"}
+  },
+
+  config = function()
+    require("clipboard-image").setup({
+      default  = {
+        img_dir     = "img",
+        --img_dir     = {"img", "%:t:r"},
+        --img_dir_txt = {"img", "%:t:r"},
+        img_dir_txt = "img",
+        img_name = function() return os.date('%Y-%m-%d-%H-%M-%S') end, -- Example result: "2021-04-13-10-04-18"
+        affix  = ".image %s",
+      },
+      markdown = { affix = "![](%s)" },
+      tex      = { affix = "{\\includegraphics{%s}}" },
+      wiki     = { affix = "![](%s)" },
+    })
+  end,
+}
+
+--return {
+--  {
+--    'ekickx/clipboard-image.nvim',
+--    event = { "BufReadPost", "BufNewFile" }, 
+--    enabled = true,
+--  config = function()
+--         require("clipboard-image").setup({
+--        default = {
+ --         img_dir = "img",
+--          img_name = function() return os.date('%Y-%m-%d-%H-%M-%S') end, -- Example result: "2021-04-13-10-04-18"
+--          affix = "<\n.image %s\n>" -- Multi lines affix
+--        },
+--      })
+--    end,
+--  }
+--}
+
+
+@end
 
 * Disabled plugins 
 
