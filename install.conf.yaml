@@ -7,3 +7,4 @@
 
 - link:
     ~/.config/tmux: tmux
+    ~/.config/nvim: nvim
